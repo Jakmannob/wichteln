@@ -29,7 +29,7 @@ parser.add_argument(
 parser.add_argument(
     '--output_type',
     type=str,
-    choices=['txt', 'pdf'],
+    choices=['txt', 'pdf', 'all'],
     default='pdf',
     help='The format of the output file'
 )
@@ -169,9 +169,9 @@ class WichtelDistribution:
         if not os.path.exists(self.output_directory):
             os.makedirs(self.output_directory)
         for gifter, gifted in distribution.items():
-            if self.output_type == 'pdf':
+            if self.output_type == 'pdf' or self.output_type == 'all':
                 self._write_single_pdf(gifter, gifted)
-            elif self.output_type == 'txt':
+            elif self.output_type == 'txt' or self.output_type == 'all':
                 self._write_single_txt(gifter, gifted)
 
     def draw_and_write(self):
