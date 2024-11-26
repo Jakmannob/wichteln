@@ -141,7 +141,7 @@ class WichtelDistribution:
         if self.language == 'english':
             return f'You are secret santa for: {gifted}'
         elif self.language == 'german':
-            return f'Dein Wichtel ist: {gifted}'
+            return f'Du machst ein Geschenk für: {gifted}'
         return gifted
 
     def _write_single_pdf(self, gifter, gifted):
