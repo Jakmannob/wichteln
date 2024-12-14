@@ -137,33 +137,35 @@ class WichtelDistribution:
                 position += size
         return drawn
 
-    def _get_write_text(self, gifter, gifted):
+    def _get_write_prefix(self):
         if self.language == 'english':
-            return f'You are secret santa for: {gifted}'
+            return 'You are secret santa for:'
         elif self.language == 'german':
-            return f'Du machst ein Geschenk für: {gifted}'
-        return gifted
+            return 'Du machst ein Geschenk für:'
+        return ''
+
+    def _get_write_text(self, gifted):
+        return f'{self._get_write_prefix()} {gifted}'
 
     def _write_single_pdf(self, gifter, gifted):
-        text = self._get_write_text(gifter, gifted)
-
         pdf = FPDF()
         pdf.set_xy(0, 0)
         pdf.set_font('Helvetica', size=13, style='B')
-        text_width = int(pdf.get_string_width(text))+20
-        text_height = 22 
+        text_width = int(pdf.get_string_width(self._get_write_prefix()))+20
+        text_height = 120
         pdf.add_page(format=(text_width, text_height))
         pdf.set_left_margin(0)
         pdf.set_right_margin(0)
         pdf.set_top_margin(0)
         pdf.set_auto_page_break(auto=0, margin=0)
-        pdf.cell(0, 0, text=text, align='C')
+        pdf.cell(0, 0, text=self._get_write_prefix(), align='C')
+        pdf.cell(-(text_width), 200, text=gifted, align='C')
         pdf.output(os.path.join(self.output_directory, f'{gifter}.pdf'))
 
     def _write_single_txt(self, gifter, gifted):
         with open(os.path.join(self.output_directory, f'{gifter}.txt'),
                 'w') as output_file:
-            output_file.write(self._get_write_text(gifter, gifted))
+            output_file.write(self._get_write_text(gifted))
 
     def write(self, distribution):
         if not os.path.exists(self.output_directory):
