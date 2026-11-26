@@ -1,6 +1,10 @@
 # wichteln
 
+[![Open the web app](https://img.shields.io/badge/🎁_Open_the_web_app-jakmannob.github.io%2Fwichteln-b3261e?style=for-the-badge)](https://jakmannob.github.io/wichteln/)
+
 A small tool to help with the generation of a secret santa (german "Wichteln") mapping
+
+**Just want to draw names? Use the [web app](https://jakmannob.github.io/wichteln/), no installation needed, entirely local and private within your browser.**
 
 ## How it works
 
@@ -17,8 +21,8 @@ permutation.
 
 ## Web version
 
-`docs/index.html` is a static page with the same functionality that runs fully in the
-browser and downloads all files as a ZIP. To host it, enable GitHub Pages in the
+The [web app](https://jakmannob.github.io/wichteln/) (`docs/index.html`) is a static
+page with the same functionality that runs fully in the browser and downloads all files as a ZIP. To host it, enable GitHub Pages in the
 repository settings with source "Deploy from a branch", branch `main`, folder `/docs`.
 
 ## How to use it
