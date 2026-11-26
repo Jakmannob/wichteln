@@ -103,14 +103,21 @@ class WichtelDistribution:
         if assume_count > 1:
             raise ValueError('Please use -1 at most once when generating permutations.')
         if assume_tuple is not None:
-            if assume_tuple[0] == -1:
-                assume_tuple = (used_n//assume_tuple[1], assume_tuple[1])
-            if assume_tuple[1] == -1:
-                assume_tuple = (assume_tuple[0], used_n//assume_tuple[0])
-            used_n -= assume_tuple[0] * assume_tuple[1]
-            if used_n != 0:
-                raise ValueError('Please check your permutations, they are not correct.')
-            fixed_permutations.append(assume_tuple)
+            size, count = assume_tuple
+            if size < 0 and count < 0:
+                raise ValueError('Please use -1 at most once when generating permutations.')
+            if size < 0:
+                # Split the rest as evenly as possible: some cycles get one extra participant
+                base, larger = divmod(used_n, count)
+                fixed_permutations += [(s, c) for s, c in [(base+1, larger), (base, count-larger)] if c > 0]
+                used_n = 0
+            else:
+                fixed_permutations.append((size, used_n//size))
+                used_n %= size
+        if used_n != 0:
+            raise ValueError('Please check your permutations, they are not correct.')
+        if any(size < 2 for size, _ in fixed_permutations):
+            raise ValueError('Every cycle needs at least 2 participants.')
 
         return fixed_permutations
 

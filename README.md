@@ -40,6 +40,7 @@ If one of these is $`-1`$, it will be assumed.
 Examples:
 
 - `(-1,1)`: The default will create one cycle with all participants in it
-- `(-1,2)`: This will try to evenly split all participants into two cycles
+- `(-1,2)`: This will split all participants into two cycles as evenly as possible
+    (e.g. 7 participants become one 4-cycle and one 3-cycle)
 - `(3,1),(4,-1)`: One cycle of 3 participants, the rest will be 4-cycles. Will raise
     an exception if there exists no $`k`$, s.t. $`n = 3+4{\cdot}k`$

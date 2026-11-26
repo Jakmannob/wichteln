@@ -110,7 +110,7 @@ const STRINGS = {
     namesPlaceholder: 'Alice\nBob\n# comment\nCarol',
     cycles: "Cycles (if you don't know what you're doing, keep the default)",
     cyclesHint: 'Tuples of <code>(size,count)</code>; one value may be <code>-1</code> to infer it. ' +
-      '<code>(-1,1)</code> = one big cycle, <code>(-1,2)</code> = two equal groups, ' +
+      '<code>(-1,1)</code> = one big cycle, <code>(-1,2)</code> = two groups of (almost) equal size, ' +
       '<code>(3,1),(4,-1)</code> = one 3-cycle, rest 4-cycles.',
     output: 'Output', text: 'Text', both: 'Both',
     seed: 'Seed (optional)', seedPlaceholder: 'random',
@@ -133,7 +133,7 @@ const STRINGS = {
     namesPlaceholder: 'Armin\nBerta\n# Kommentar\nCarolin',
     cycles: 'Zyklen (wenn du nicht weißt was du machst lass den default)',
     cyclesHint: 'Tupel aus <code>(Größe,Anzahl)</code>; ein Wert darf <code>-1</code> sein und wird dann berechnet. ' +
-      '<code>(-1,1)</code> = ein großer Zyklus, <code>(-1,2)</code> = zwei gleich große Gruppen, ' +
+      '<code>(-1,1)</code> = ein großer Zyklus, <code>(-1,2)</code> = zwei (fast) gleich große Gruppen, ' +
       '<code>(3,1),(4,-1)</code> = ein 3er-Zyklus, der Rest 4er-Zyklen.',
     output: 'Ausgabe', text: 'Text', both: 'Beides',
     seed: 'Seed (optional)', seedPlaceholder: 'zufällig',
@@ -185,7 +185,7 @@ function parsePermutations(text, n) {
   for (const [size, count] of tuples) {
     if (size === 0 || count === 0) continue;
     if (size < 0 || count < 0) {
-      if (assume) throw new Error(t('errAssume'));
+      if (assume || (size < 0 && count < 0)) throw new Error(t('errAssume'));
       assume = [size, count];
       continue;
     }
@@ -194,10 +194,17 @@ function parsePermutations(text, n) {
   }
   if (usedN < 0) throw new Error(t('errTooMany'));
   if (assume) {
-    if (assume[0] < 0) assume[0] = Math.floor(usedN / assume[1]);
-    if (assume[1] < 0) assume[1] = Math.floor(usedN / assume[0]);
-    usedN -= assume[0] * assume[1];
-    fixed.push(assume);
+    const [size, count] = assume;
+    if (size < 0) {
+      // Split the rest as evenly as possible: some cycles get one extra participant
+      const base = Math.floor(usedN / count);
+      const larger = usedN % count;
+      fixed.push(...[[base + 1, larger], [base, count - larger]].filter(([, c]) => c > 0));
+      usedN = 0;
+    } else {
+      fixed.push([size, Math.floor(usedN / size)]);
+      usedN %= size;
+    }
   }
   if (usedN !== 0) throw new Error(t('errSum'));
   if (fixed.some(([size]) => size < 2)) throw new Error(t('errSelf'));
