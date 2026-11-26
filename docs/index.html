@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wichteln</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f5f2; --fg: #1d1d1f; --muted: #6b6b70; --card: #ffffff;
+    --border: #dddad5; --accent: #b3261e; --accent-fg: #ffffff; --error: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161618; --fg: #ececee; --muted: #9a9aa0; --card: #202023;
+      --border: #34343a; --accent: #e5534b; --accent-fg: #ffffff; --error: #ff7b72;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  h1 { margin: 0 0 4px; font-size: 1.75rem; }
+  .lang-toggle { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .lang-toggle button {
+    margin: 0; width: auto; padding: 4px 10px; font-weight: 600; border-radius: 0;
+    background: transparent; color: var(--muted);
+  }
+  .lang-toggle button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+  p.lead { margin: 0 0 24px; color: var(--muted); }
+  form { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  label { display: block; font-weight: 600; margin: 16px 0 4px; }
+  label:first-child { margin-top: 0; }
+  .hint { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+  textarea, input, select {
+    width: 100%; font: inherit; color: var(--fg); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+  }
+  textarea { min-height: 180px; resize: vertical; font-family: ui-monospace, monospace; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row label { margin-top: 16px; }
+  @media (max-width: 480px) { .row { grid-template-columns: 1fr; } }
+  button {
+    margin-top: 20px; width: 100%; padding: 10px; font: inherit; font-weight: 600;
+    background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 6px; cursor: pointer;
+  }
+  #status { margin-top: 12px; }
+  #status:empty { display: none; }
+  #status.error { color: var(--error); }
+  code { font-family: ui-monospace, monospace; font-size: 0.9em; }
+  footer { margin-top: 24px; font-size: 0.85rem; color: var(--muted); }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Wichteln</h1>
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button type="button" data-lang="english">EN</button>
+      <button type="button" data-lang="german">DE</button>
+    </div>
+  </header>
+  <p class="lead" data-i18n-html="lead"></p>
+
+  <form id="form">
+    <label for="names" data-i18n="names"></label>
+    <textarea id="names" placeholder="Alice&#10;Bob&#10;# comments start with a hash&#10;Carol"></textarea>
+
+    <label for="permutations" data-i18n="cycles"></label>
+    <input id="permutations" value="(-1,1)">
+    <div class="hint" data-i18n-html="cyclesHint"></div>
+
+    <div class="row">
+      <div>
+        <label for="outputType" data-i18n="output"></label>
+        <select id="outputType">
+          <option value="pdf">PDF</option>
+          <option value="txt" data-i18n="text"></option>
+          <option value="all" data-i18n="both"></option>
+        </select>
+      </div>
+      <div>
+        <label for="seed" data-i18n="seed"></label>
+        <input id="seed" type="number" min="0" step="1">
+      </div>
+    </div>
+    <div class="hint" data-i18n="seedHint"></div>
+
+    <button type="submit" data-i18n="submit"></button>
+    <div id="status" role="status"></div>
+  </form>
+
+  <footer>
+    <span data-i18n="footer"></span>
+    <a href="https://github.com/Jakmannob/wichteln" data-i18n="source"></a>
+  </footer>
+</main>
+
+<script>
+const STRINGS = {
+  english: {
+    prefix: 'You are secret santa for:',
+    lead: 'Secret santa draw, fully private in your browser. <b>Give each person the file with their name.</b>',
+    names: 'Participants (one per line)',
+    namesPlaceholder: 'Alice\nBob\n# comment\nCarol',
+    cycles: "Cycles (if you don't know what you're doing, keep the default)",
+    cyclesHint: 'Tuples of <code>(size,count)</code>; one value may be <code>-1</code> to infer it. ' +
+      '<code>(-1,1)</code> = one big cycle, <code>(-1,2)</code> = two equal groups, ' +
+      '<code>(3,1),(4,-1)</code> = one 3-cycle, rest 4-cycles.',
+    output: 'Output', text: 'Text', both: 'Both',
+    seed: 'Seed (optional)', seedPlaceholder: 'random',
+    seedHint: 'Same seed and names give the same draw.',
+    submit: 'Draw & download ZIP',
+    footer: '', source: 'Source on GitHub',
+    errParse: 'Could not parse cycles, use e.g. (-1,1).',
+    errAssume: 'Please use -1 at most once.',
+    errTooMany: 'The cycles need more participants than given.',
+    errSum: 'The cycles do not add up to the number of participants.',
+    errSelf: 'Every cycle needs at least 2 participants, otherwise someone draws themselves.',
+    errFew: 'Please enter at least 2 participants.',
+    errUnique: 'Names must be unique.',
+    done: (n, cycles) => `Done: ${n} participants in ${cycles}.`,
+  },
+  german: {
+    prefix: 'Du machst ein Geschenk für:',
+    lead: 'Wichtel-Auslosung, komplett privat im Browser. <b>Gib jeder Person die Datei mit ihrem Namen.</b>',
+    names: 'Teilnehmende (eine Person pro Zeile)',
+    namesPlaceholder: 'Armin\nBerta\n# Kommentar\nCarolin',
+    cycles: 'Zyklen (wenn du nicht weißt was du machst lass den default)',
+    cyclesHint: 'Tupel aus <code>(Größe,Anzahl)</code>; ein Wert darf <code>-1</code> sein und wird dann berechnet. ' +
+      '<code>(-1,1)</code> = ein großer Zyklus, <code>(-1,2)</code> = zwei gleich große Gruppen, ' +
+      '<code>(3,1),(4,-1)</code> = ein 3er-Zyklus, der Rest 4er-Zyklen.',
+    output: 'Ausgabe', text: 'Text', both: 'Beides',
+    seed: 'Seed (optional)', seedPlaceholder: 'zufällig',
+    seedHint: 'Gleicher Seed und gleiche Namen ergeben die gleiche Auslosung.',
+    submit: 'Auslosen & ZIP herunterladen',
+    footer: '', source: 'Quellcode auf GitHub',
+    errParse: 'Zyklen konnten nicht gelesen werden, z. B. (-1,1) verwenden.',
+    errAssume: 'Bitte -1 höchstens einmal verwenden.',
+    errTooMany: 'Die Zyklen brauchen mehr Teilnehmende als angegeben.',
+    errSum: 'Die Zyklen ergeben nicht die Anzahl der Teilnehmenden.',
+    errSelf: 'Jeder Zyklus braucht mindestens 2 Personen, sonst zieht jemand sich selbst.',
+    errFew: 'Bitte mindestens 2 Teilnehmende eingeben.',
+    errUnique: 'Namen müssen eindeutig sein.',
+    done: (n, cycles) => `Fertig: ${n} Teilnehmende in ${cycles}.`,
+  },
+};
+
+let lang = 'german';
+const t = key => STRINGS[lang][key];
+
+function setLanguage(newLang) {
+  lang = newLang;
+  document.documentElement.lang = lang === 'german' ? 'de' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-html]').forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
+  document.getElementById('names').placeholder = t('namesPlaceholder');
+  document.getElementById('seed').placeholder = t('seedPlaceholder');
+  document.querySelectorAll('.lang-toggle button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === lang));
+  document.getElementById('status').textContent = '';
+  try { localStorage.setItem('wichteln-lang', lang); } catch {}
+}
+
+document.querySelectorAll('.lang-toggle button').forEach(b => b.addEventListener('click', () => setLanguage(b.dataset.lang)));
+let savedLang = null;
+try { savedLang = localStorage.getItem('wichteln-lang'); } catch {}
+setLanguage(STRINGS[savedLang] ? savedLang : 'german');
+
+function parseNames(text) {
+  return text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+}
+
+function parsePermutations(text, n) {
+  const tuples = [...text.matchAll(/\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/g)].map(m => [+m[1], +m[2]]);
+  if (!tuples.length) throw new Error(t('errParse'));
+
+  let usedN = n;
+  let assume = null;
+  const fixed = [];
+  for (const [size, count] of tuples) {
+    if (size === 0 || count === 0) continue;
+    if (size < 0 || count < 0) {
+      if (assume) throw new Error(t('errAssume'));
+      assume = [size, count];
+      continue;
+    }
+    usedN -= size * count;
+    fixed.push([size, count]);
+  }
+  if (usedN < 0) throw new Error(t('errTooMany'));
+  if (assume) {
+    if (assume[0] < 0) assume[0] = Math.floor(usedN / assume[1]);
+    if (assume[1] < 0) assume[1] = Math.floor(usedN / assume[0]);
+    usedN -= assume[0] * assume[1];
+    fixed.push(assume);
+  }
+  if (usedN !== 0) throw new Error(t('errSum'));
+  if (fixed.some(([size]) => size < 2)) throw new Error(t('errSelf'));
+  return fixed;
+}
+
+// mulberry32: small seedable PRNG for reproducible draws
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function cryptoRandom() {
+  return crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
+}
+
+function shuffle(items, rand) {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function draw(names, cycles) {
+  const pairs = [];
+  let pos = 0;
+  for (const [size, count] of cycles) {
+    for (let c = 0; c < count; c++) {
+      const group = names.slice(pos, pos + size);
+      group.forEach((gifter, i) => pairs.push([gifter, group[(i + 1) % size]]));
+      pos += size;
+    }
+  }
+  return pairs;
+}
+
+// Prefix at the top, name far below, so file previews don't spoil the target
+function makePdf(prefix, gifted) {
+  const probe = new jspdf.jsPDF({ unit: 'mm' });
+  probe.setFont('helvetica', 'bold').setFontSize(13);
+  const width = Math.max(probe.getTextWidth(prefix), probe.getTextWidth(gifted)) + 20;
+  const doc = new jspdf.jsPDF({ unit: 'mm', format: [width, 120], orientation: 'portrait' });
+  doc.setFont('helvetica', 'bold').setFontSize(13);
+  doc.text(prefix, width / 2, 6, { align: 'center' });
+  doc.text(gifted, width / 2, 100, { align: 'center' });
+  return doc.output('arraybuffer');
+}
+
+function safeFileName(name) {
+  return name.replace(/[\/\\:*?"<>|]/g, '_');
+}
+
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const status = document.getElementById('status');
+  status.className = '';
+  status.textContent = '';
+  try {
+    const names = parseNames(document.getElementById('names').value);
+    if (names.length < 2) throw new Error(t('errFew'));
+    if (new Set(names).size !== names.length) throw new Error(t('errUnique'));
+
+    const cycles = parsePermutations(document.getElementById('permutations').value, names.length);
+    const seedText = document.getElementById('seed').value.trim();
+    const rand = seedText === '' ? cryptoRandom : seededRandom(parseInt(seedText, 10));
+    const pairs = draw(shuffle(names, rand), cycles);
+
+    const prefix = t('prefix');
+    const outputType = document.getElementById('outputType').value;
+    const zip = new JSZip();
+    for (const [gifter, gifted] of pairs) {
+      const file = safeFileName(gifter);
+      if (outputType !== 'txt') zip.file(`${file}.pdf`, makePdf(prefix, gifted));
+      if (outputType !== 'pdf') zip.file(`${file}.txt`, `${prefix} ${gifted}`);
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: 'wichteln.zip' });
+    a.click();
+    URL.revokeObjectURL(url);
+    status.textContent = STRINGS[lang].done(pairs.length, cycles.map(([s, c]) => `${c}×${s}`).join(' + '));
+  } catch (err) {
+    status.className = 'error';
+    status.textContent = err.message;
+  }
+});
+</script>
+</body>
+</html>

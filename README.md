@@ -15,6 +15,12 @@ the input names by default. If you want to e.g. have 24 participants into 4
 groups of 6 participants each, you can also specify the cycles of your desired
 permutation.
 
+## Web version
+
+`docs/index.html` is a static page with the same functionality that runs fully in the
+browser and downloads all files as a ZIP. To host it, enable GitHub Pages in the
+repository settings with source "Deploy from a branch", branch `main`, folder `/docs`.
+
 ## How to use it
 
 See all available options:
